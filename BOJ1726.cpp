@@ -1,132 +1,87 @@
-#include <cstdio>
-
+#include <stdio.h>
+#include <queue>
 using namespace std;
-
-struct State {
-    int x;
-    int y;
-    int dir;
-    int dist;
-    State(int x, int y, int dir, int dist) {
-        this->x = x;
-        this->y = y;
-        this->dir = dir;
-        this->dist = dist;
+int n,m,sy,sx,sd,gy,gx,gd;
+int map[101][101];
+bool visit[101][101][4];
+int yd[4] = { 0,0,1,-1 };
+int xd[4] = { 1,-1,0,0 };
+int turn(int d, bool r)
+{
+    if (r)
+    {
+        if (d == 1) return 3;
+        else if (d == 2) return 4;
+        else if (d == 3) return 2;
+        else if (d == 4) return 1;
     }
-    State() {} // 기본생성자 필요
-};
-
-template<typename T>
-struct Queue {
-    struct Node {
-        T val; // 임시 변수를 만들기 때문에
-        Node* next;
-        Node(T val) { 
-            this->val = val;
-            this->next = NULL;
-        }
-    };
-
-    Node *pStart, *pEnd;
-    Queue() {
-        pStart = pEnd = NULL;
+    else
+    {
+        if (d == 1) return 4;
+        else if (d == 2) return 3;
+        else if (d == 3) return 1;
+        else if (d == 4) return 2;
     }
-
-    int isEmpty() {
-        if (pStart == NULL) return 1;
-        return 0;
+}
+int bfs()
+{
+    queue < pair<int,int>> q;
+    queue<int>qd;
+    q.push(make_pair(sy, sx));
+    qd.push(sd);
+    visit[sy][sx][sd] = 1;
+    int cnt = 0;
+    bool suc = 0;
+    while (!q.empty())
+    {
+        int q_sz = q.size();
+        while (q_sz--)
+        {
+            int y, x, d;
+            y = q.front().first;
+            x = q.front().second;
+            d = qd.front();
+            q.pop(); qd.pop();
+            if (y == gy && x == gx && d == gd)
+            {
+                suc = 1;
+                break;
+            }
+            int ny, nx, nd;
+            for (int i = 1; i <= 3; i++)
+            {
+                ny = y + yd[d - 1] * i;
+                nx = x + xd[d - 1] * i;
+                if (ny <1 || nx <1 || ny >n || nx > m) continue;
+                if (map[ny][nx]) break;
+                if (visit[ny][nx][d]) continue;
+                visit[ny][nx][d] = 1;
+                q.push(make_pair(ny, nx));
+                qd.push(d);
+            }
+            for (int i = 0; i < 2; i++)
+            {
+                nd = turn(d, i);
+                if (visit[y][x][nd]) continue;
+                visit[y][x][nd] = 1;
+                q.push(make_pair(y, x));
+                qd.push(nd);
+            }
+        }
+        if (suc) break;
+        cnt++;
     }
-
-    void add(T val) {
-        if (isEmpty()) {
-            pStart = pEnd = new Node(val);
-        }
-        else {
-            Node *newNode = new Node(val);
-            pEnd->next = newNode;
-            pEnd = newNode;
-        }
-    }
-
-    T pull() {
-        if (pStart == pEnd) {
-            T tmp_val = pStart->val;
-            delete pStart;
-            pStart = pEnd = NULL;
-            return tmp_val;
-        }
-        else {
-            T tmp_val = pStart->val;
-            Node* tmp = pStart;
-            pStart = tmp->next;
-            delete tmp;
-            return tmp_val;
-        }
-    }
-};
-
-int data[110][110];
-int visited[110][110][5];
-
-int main(void) {
-    int M, N;
-    scanf("%d %d", &M, &N);
-    for (int i = 1;i <= M;i++) {
-        for (int j = 1;j <= N;j++) {
-            scanf("%d", &data[i][j]);
-        }
-    }
-
-    int sy, sx, sd;
-    int ey, ex, ed;
+    while (!q.empty()) q.pop();
+    while (!qd.empty()) qd.pop();
+    return cnt;
+}
+int main(void)
+{
+    scanf("%d %d", &n, &m);
+    for (int i = 1; i <= n; i++) for (int j = 1; j <=m; j++) scanf("%d", &map[i][j]);
     scanf("%d %d %d", &sy, &sx, &sd);
-    scanf("%d %d %d", &ey, &ex, &ed);
-
-    int ans = 0;
-
-    int dir[5][2] = { {0, 0}, {0, 1}, {0, -1}, {1, 0} ,{-1, 0} };
-    Queue<State>* q = new Queue<State>();
-    visited[sy][sx][sd] = 1;
-    q->add(State(sx, sy, sd, 0));
-    while (!q->isEmpty()) {
-        State cur = q->pull();
-        if (cur.y == ey && cur.x == ex && cur.dir == ed) {
-            ans = cur.dist;
-            break;
-        }
-
-        for (int k = 1;k <= 3;k++) {
-            int ny = cur.y + dir[cur.dir][0] * k;
-            int nx = cur.x + dir[cur.dir][1] * k;
-            if (ny > M || ny <= 0) continue;
-            if (nx > N || nx <= 0) continue;
-            if (data[ny][nx] == 0) {
-                if (visited[ny][nx][cur.dir] == 0) {
-                    visited[ny][nx][cur.dir] = 1;
-                    q->add(State(nx, ny, cur.dir, cur.dist + 1));
-                }
-            }
-            else break;
-        }
-
-        int r, l;
-        if (cur.dir == 1) r = 3, l = 4;
-        if (cur.dir == 2) r = 4, l = 3;
-        if (cur.dir == 3) r = 2, l = 1;
-        if (cur.dir == 4) r = 1, l = 2;
-        if (data[cur.y][cur.x] == 0) {
-            if (visited[cur.y][cur.x][r] == 0) {
-                visited[cur.y][cur.x][r] = 1;
-                q->add(State(cur.x, cur.y, r, cur.dist + 1));
-            }
-            if (visited[cur.y][cur.x][l] == 0) {
-                visited[cur.y][cur.x][l] = 1;
-                q->add(State(cur.x, cur.y, l, cur.dist + 1));
-            }
-        }
-    }
-
-    printf("%d", ans);
-
+    scanf("%d %d %d", &gy, &gx, &gd);
+    printf("%d\n", bfs());
+    
     return 0;
 }
